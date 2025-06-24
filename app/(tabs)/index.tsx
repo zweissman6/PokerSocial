@@ -1,4 +1,4 @@
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { dummySessions } from '../../data/sessions';
 
 // Optionally, use a helper to format times for readability:
@@ -41,7 +41,7 @@ export default function FeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12, paddingTop: 72, backgroundColor: '#1a1a1a' },
+  container: { flex: 1, padding: 12, paddingTop: Platform.OS === 'ios' ? 72 : 12, backgroundColor: '#1a1a1a' },
   card: { backgroundColor: '#232323', borderRadius: 14, padding: 14, marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
