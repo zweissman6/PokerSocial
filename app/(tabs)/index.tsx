@@ -1,75 +1,103 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, View } from 'react-native';
+//import { dummySessions } from '../../data/sessions'; //local dummy sessions
+import axios from 'axios';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+type Session = {
+  _id: string;
+  userId: {
+    _id: string;
+    userName: string;
+    firstName: string;
+    lastName: string;
+    avatar: string;
+    favoriteCardroom: string;
+  };
+  stakes: string;
+  gameType: string;
+  location: string;
+  buyIn: number;
+  cashOut: number;
+  startTime: string;
+  endTime: string;
+  date: string;
+  photo?: string;
+  description?: string;
+};
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+
+//localhost dev url
+const API_URL = 'http://10.91.42.216:4000/sessions';
+
+// Optionally, use a helper to format times for readability:
+function formatTime(isoString: string) {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+export default function FeedScreen() {
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get(API_URL)
+      .then((response) => {
+        setSessions(response.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching sessions:', error);
+        setLoading(false);
+      });
+    }, []);
+
+    if (loading) {
+      return (
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#ffd700" />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.container}>
+        <FlatList
+          data={sessions}
+          keyExtractor={item => item._id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.header}>
+                <Image source={{ uri: item.userId.avatar }} style={styles.avatar} />
+                <View>
+                  <Text style={styles.username}>{item.userId.userName}</Text>
+                  <Text style={styles.meta}>{item.stakes} {item.gameType} • {item.location}</Text>
+                  <Text style={styles.meta}>{item.date}</Text>
+                </View>
+              </View>
+              {item.photo ? (
+                <Image source={{ uri: item.photo }} style={styles.sessionPhoto} />
+              ) : null}
+              <Text style={styles.sessionInfo}>
+                Buy-in: ${item.buyIn} | Cash-out: ${item.cashOut}
+              </Text>
+              <Text style={styles.meta}>
+                Start: {formatTime(item.startTime)} • End: {formatTime(item.endTime)}
+              </Text>
+              <Text style={styles.description}>{item.description}</Text>
+            </View>
+          )}
+        />
+      </View>
+    );
+  }
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  container: { flex: 1, padding: 12, paddingTop: Platform.OS === 'ios' ? 72 : 12, backgroundColor: '#1a1a1a' },
+  card: { backgroundColor: '#232323', borderRadius: 14, padding: 14, marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  username: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  meta: { color: '#aaa', fontSize: 13 },
+  sessionPhoto: { width: '100%', height: 170, borderRadius: 10, marginVertical: 7 },
+  sessionInfo: { color: '#ffd700', fontSize: 15, fontWeight: 'bold', marginTop: 5 },
+  description: { color: '#eaeaea', marginTop: 6, fontSize: 14 },
 });
