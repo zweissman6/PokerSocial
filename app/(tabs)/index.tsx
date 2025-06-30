@@ -27,7 +27,7 @@ type Session = {
 
 
 //localhost dev url
-const API_URL = 'http://10.91.42.216:4000/sessions';
+const API_URL = 'http://10.1.10.161:4000/sessions';
 
 // Optionally, use a helper to format times for readability:
 function formatTime(isoString: string) {
@@ -38,6 +38,7 @@ function formatTime(isoString: string) {
 export default function FeedScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     axios.get(API_URL)
@@ -47,6 +48,7 @@ export default function FeedScreen() {
       })
       .catch((error) => {
         console.error('Error fetching sessions:', error);
+        setError('Could not load sessions.');
         setLoading(false);
       });
     }, []);
@@ -58,17 +60,28 @@ export default function FeedScreen() {
         </View>
       );
     }
+    if (error) {
+      return (
+        <View style={styles.container}>
+          <Text style={{ color: 'red', fontSize: 16 }}>{error}</Text>
+        </View>
+      );
+    }
     return (
       <View style={styles.container}>
         <FlatList
-          data={sessions}
+          data={sessions.filter(item => item.userId)}
           keyExtractor={item => item._id}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.header}>
-                <Image source={{ uri: item.userId.avatar }} style={styles.avatar} />
+                {item.userId && (
+                  <Image source={{ uri: item.userId.avatar }} style={styles.avatar} />
+                )}
                 <View>
-                  <Text style={styles.username}>{item.userId.userName}</Text>
+                  <Text style={styles.username}>
+                    {item.userId ? item.userId.userName : "Unknown User"}
+                  </Text>
                   <Text style={styles.meta}>{item.stakes} {item.gameType} • {item.location}</Text>
                   <Text style={styles.meta}>{item.date}</Text>
                 </View>
