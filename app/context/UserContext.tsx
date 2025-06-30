@@ -27,7 +27,6 @@ export const useUser = () => useContext(UserContext);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  console.log('UserProvider render. user:', user);
 
   const logout = () => setUser(null);
 
