@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   avatar: { type: String },
   favoriteCardroom: { type: String },
+  password: { type: String, required: true },
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // users they follow
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // users that follow them
   sessions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Session' }] // sessions this user has posted
