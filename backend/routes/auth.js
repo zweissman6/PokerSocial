@@ -22,7 +22,20 @@ router.post('/register', async (req, res) => {
       followers: [],
       sessions: []
     });
-    res.status(201).json({ message: 'User created', user: { userName: user.userName, _id: user._id } });
+    res.status(201).json({
+    message: 'User created',
+    user: {
+      _id: user._id,
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+      favoriteCardroom: user.favoriteCardroom,
+      following: user.following,
+      followers: user.followers,
+      sessions: user.sessions
+    }
+  });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,7 +52,21 @@ router.post('/login', async (req, res) => {
     if (!passwordMatch) return res.status(401).json({ error: 'Invalid username or password' });
 
     // For now, just return basic info (add JWT later if you want)
-    res.json({ message: 'Login successful', user: { userName: user.userName, _id: user._id } });
+    res.json({
+    message: 'Login successful',
+    user: {
+      _id: user._id,
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+      favoriteCardroom: user.favoriteCardroom,
+      following: user.following,
+      followers: user.followers,
+      sessions: user.sessions
+    }
+  });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
