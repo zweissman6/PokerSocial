@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) return res.status(401).json({ error: 'Invalid username or password' });
 
-    // For now, just return basic info (add JWT later if you want)
+    // return all data
     res.json({
     message: 'Login successful',
     user: {
