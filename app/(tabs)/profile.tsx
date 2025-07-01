@@ -2,7 +2,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Platform,
@@ -61,7 +60,6 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [sortMenuVisible, setSortMenuVisible] = React.useState(false);
   const [orderMenuVisible, setOrderMenuVisible] = React.useState(false);
@@ -88,14 +86,19 @@ export default function ProfileScreen() {
     }, [user?._id, sortBy, order])
   );
 
-  // Separate refresh for user info
+  // refreshes user ata and session data
   const onRefresh = async () => {
     if (!user) return;
     setRefreshing(true);
     setError(null);
+
     try {
-      const res = await axios.get(`${API_URL}/${user._id}`);
-      setUser(res.data);
+      // Refresh user info
+      const resUser = await axios.get(`${API_URL}/${user._id}`);
+      setUser(resUser.data);
+
+      // Refresh sessions (with current sort/order)
+      await fetchSessions({ sortBy, order });
     } catch (err) {
       setError('Could not refresh user info.');
     } finally {
@@ -103,10 +106,10 @@ export default function ProfileScreen() {
     }
   };
 
+
   // Fetch sessions for user
   const fetchSessions = async (filters: any = {}) => {
     if (!user) return;
-    setSessionsLoading(true);
     setSessionsError(null);
 
     let query = Object.entries(filters)
@@ -122,7 +125,6 @@ export default function ProfileScreen() {
     } catch (err) {
       setSessionsError('Could not load sessions.');
     }
-    setSessionsLoading(false);
   };
 
   useEffect(() => {
@@ -245,18 +247,14 @@ export default function ProfileScreen() {
             </View>
 
             <Text style={styles.sectionHeader}>My Sessions</Text>
-            {sessionsLoading && (
-              <ActivityIndicator size="large" color="#ffd700" style={{ marginVertical: 16 }} />
-            )}
             {sessionsError && (
               <Text style={{ color: 'red', marginVertical: 8 }}>{sessionsError}</Text>
-            )}
-            {!sessionsLoading && sessions.length === 0 && (
-              <Text style={{ color: '#aaa', marginVertical: 16 }}>No sessions found.</Text>
             )}
           </>
         }
         contentContainerStyle={{ padding: 16 }}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
     </View>
   );
