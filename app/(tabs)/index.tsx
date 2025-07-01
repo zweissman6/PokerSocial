@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, View } from 'react-native';
 //import { dummySessions } from '../../data/sessions'; //local dummy sessions
 import axios from 'axios';
@@ -39,19 +40,39 @@ export default function FeedScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchSessions(); // Your data fetching function
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
+
+  const fetchSessions = async () => {
+    setError('');
+    try {
+      const response = await axios.get(API_URL);
+      setSessions(response.data);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      setError('Could not load sessions.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    axios.get(API_URL)
-      .then((response) => {
-        setSessions(response.data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching sessions:', error);
-        setError('Could not load sessions.');
-        setLoading(false);
-      });
-    }, []);
+    fetchSessions();
+  }, []);
+
+  // 4. onRefresh handler:
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSessions();
+  };
 
     if (loading) {
       return (
@@ -72,6 +93,8 @@ export default function FeedScreen() {
         <FlatList
           data={sessions.filter(item => item.userId)}
           keyExtractor={item => item._id}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.header}>
