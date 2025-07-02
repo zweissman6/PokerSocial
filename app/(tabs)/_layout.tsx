@@ -11,12 +11,16 @@ import { useUser } from '../context/UserContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { user } = useUser();
+  const { user, loading } = useUser();
 
+  if (loading) {
+    // Optionally: return a splash or loading spinner
+    return null;
+  }
   if (!user) {
-    //redirect when not logged in
     return <Redirect href="/screens/AuthScreen" />
   }
+
 
   return (
     <Tabs

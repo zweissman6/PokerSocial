@@ -1,5 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { Button, Menu } from 'react-native-paper';
 import { useUser } from '../context/UserContext';
+
 
 type Session = {
   _id: string;
@@ -65,6 +67,8 @@ export default function ProfileScreen() {
   const [orderMenuVisible, setOrderMenuVisible] = React.useState(false);
   const [sortBy, setSortBy] = React.useState('date');
   const [order, setOrder] = React.useState<'asc' | 'desc'>('desc');
+  const router = useRouter();
+
 
   const sortOptions = [
     { key: 'date', label: 'Date' },
@@ -134,11 +138,21 @@ export default function ProfileScreen() {
 
   // UI: Session preview
   const renderSession = ({ item }: { item: Session }) => (
-    <View style={styles.sessionCard}>
-      <Text style={styles.sessionTitle}>{item.location}</Text>
-      <Text style={styles.sessionMeta}>{item.stakes} {item.gameType} • {item.date}</Text>
-      <Text numberOfLines={1} style={styles.sessionDesc}>{item.description}</Text>
-    </View>
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: '/(stacks)/PostInfo',
+          params: { postId: item._id }, // must be lower-case "postId"
+        })
+      }
+      activeOpacity={0.8}
+    >
+      <View style={styles.sessionCard}>
+        <Text style={styles.sessionTitle}>{item.location}</Text>
+        <Text style={styles.sessionMeta}>{item.stakes} {item.gameType} • {item.date}</Text>
+        <Text numberOfLines={1} style={styles.sessionDesc}>{item.description}</Text>
+      </View>
+    </TouchableOpacity>
   );
 
   if (!user) return null;

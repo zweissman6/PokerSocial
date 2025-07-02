@@ -1,8 +1,10 @@
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 //import { dummySessions } from '../../data/sessions'; //local dummy sessions
 import axios from 'axios';
+import { useRouter } from 'expo-router';
+
 
 type Session = {
   _id: string;
@@ -41,6 +43,8 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+
 
   useFocusEffect(
     useCallback(() => {
@@ -96,30 +100,32 @@ export default function FeedScreen() {
           refreshing={refreshing}
           onRefresh={onRefresh}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.header}>
-                {item.userId && (
-                  <Image source={{ uri: item.userId.avatar }} style={styles.avatar} />
-                )}
-                <View>
-                  <Text style={styles.username}>
-                    {item.userId ? item.userId.userName : "Unknown User"}
-                  </Text>
-                  <Text style={styles.meta}>{item.stakes} {item.gameType} • {item.location}</Text>
-                  <Text style={styles.meta}>{item.date}</Text>
+            <TouchableOpacity onPress={() => router.push({ pathname: '/(stacks)/PostInfo', params: {postId: item._id } })}>
+              <View style={styles.card}>
+                <View style={styles.header}>
+                  {item.userId && (
+                    <Image source={{ uri: item.userId.avatar }} style={styles.avatar} />
+                  )}
+                  <View>
+                    <Text style={styles.username}>
+                      {item.userId ? item.userId.userName : "Unknown User"}
+                    </Text>
+                    <Text style={styles.meta}>{item.stakes} {item.gameType} • {item.location}</Text>
+                    <Text style={styles.meta}>{item.date}</Text>
+                  </View>
                 </View>
+                {item.photo ? (
+                  <Image source={{ uri: item.photo }} style={styles.sessionPhoto} />
+                ) : null}
+                <Text style={styles.sessionInfo}>
+                  Buy-in: ${item.buyIn} | Cash-out: ${item.cashOut}
+                </Text>
+                <Text style={styles.meta}>
+                  Start: {formatTime(item.startTime)} • End: {formatTime(item.endTime)}
+                </Text>
+                <Text style={styles.description}>{item.description}</Text>
               </View>
-              {item.photo ? (
-                <Image source={{ uri: item.photo }} style={styles.sessionPhoto} />
-              ) : null}
-              <Text style={styles.sessionInfo}>
-                Buy-in: ${item.buyIn} | Cash-out: ${item.cashOut}
-              </Text>
-              <Text style={styles.meta}>
-                Start: {formatTime(item.startTime)} • End: {formatTime(item.endTime)}
-              </Text>
-              <Text style={styles.description}>{item.description}</Text>
-            </View>
+            </TouchableOpacity>  
           )}
         />
       </View>
