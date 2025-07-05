@@ -3,7 +3,7 @@
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconButton, Menu, TextInput } from 'react-native-paper';
 
 const API_URL = 'http://192.168.68.77:4000/sessions';
@@ -113,6 +113,11 @@ export default function PostInfo() {
   }
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // adjust as needed!
+    >
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topBar}>
@@ -202,6 +207,7 @@ export default function PostInfo() {
         </View>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 

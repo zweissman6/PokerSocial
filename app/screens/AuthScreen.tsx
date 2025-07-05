@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Button, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useUser } from '../context/UserContext';
 
 // Use your backend's public URL if testing on device!
@@ -45,59 +45,65 @@ export default function AuthScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{isLogin ? 'Login' : 'Register'}</Text>
-      <TextInput
-        placeholder="Username"
-        value={form.userName}
-        onChangeText={val => handleChange('userName', val)}
-        style={styles.input}
-      />
-      {!isLogin && (
-        <>
-          <TextInput
-            placeholder="First Name"
-            value={form.firstName}
-            onChangeText={val => handleChange('firstName', val)}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Last Name"
-            value={form.lastName}
-            onChangeText={val => handleChange('lastName', val)}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Avatar URL"
-            value={form.avatar}
-            onChangeText={val => handleChange('avatar', val)}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Favorite Cardroom"
-            value={form.favoriteCardroom}
-            onChangeText={val => handleChange('favoriteCardroom', val)}
-            style={styles.input}
-          />
-        </>
-      )}
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        value={form.password}
-        onChangeText={val => handleChange('password', val)}
-        style={styles.input}
-      />
-      <Button
-        title={isLogin ? 'Login' : 'Register'}
-        onPress={handleAuth}
-      />
-      <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switch}>
-        <Text style={{ color: '#2196F3' }}>
-          {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // adjust as needed!
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>{isLogin ? 'Login' : 'Register'}</Text>
+        <TextInput
+          placeholder="Username"
+          value={form.userName}
+          onChangeText={val => handleChange('userName', val)}
+          style={styles.input}
+        />
+        {!isLogin && (
+          <>
+            <TextInput
+              placeholder="First Name"
+              value={form.firstName}
+              onChangeText={val => handleChange('firstName', val)}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Last Name"
+              value={form.lastName}
+              onChangeText={val => handleChange('lastName', val)}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Avatar URL"
+              value={form.avatar}
+              onChangeText={val => handleChange('avatar', val)}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Favorite Cardroom"
+              value={form.favoriteCardroom}
+              onChangeText={val => handleChange('favoriteCardroom', val)}
+              style={styles.input}
+            />
+          </>
+        )}
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          value={form.password}
+          onChangeText={val => handleChange('password', val)}
+          style={styles.input}
+        />
+        <Button
+          title={isLogin ? 'Login' : 'Register'}
+          onPress={handleAuth}
+        />
+        <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switch}>
+          <Text style={{ color: '#2196F3' }}>
+            {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
