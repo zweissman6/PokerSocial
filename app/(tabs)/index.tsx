@@ -30,7 +30,7 @@ type Session = {
 
 
 //localhost dev url
-const API_URL = 'http://172.20.10.2:4000/sessions';
+const API_URL = 'http://192.168.68.77:4000/sessions';
 
 // Optionally, use a helper to format times for readability:
 function formatTime(isoString: string) {

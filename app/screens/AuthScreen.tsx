@@ -5,7 +5,7 @@ import { Alert, Button, StyleSheet, Text, TextInput, TouchableOpacity, View } fr
 import { useUser } from '../context/UserContext';
 
 // Use your backend's public URL if testing on device!
-const API_URL = 'http://172.20.10.2:4000/auth'; // Change if using phone (see earlier messages)
+const API_URL = 'http://192.168.68.77:4000/auth'; // Change if using phone (see earlier messages)
 
 export default function AuthScreen({ navigation }: any) {
   const [isLogin, setIsLogin] = useState(true);
