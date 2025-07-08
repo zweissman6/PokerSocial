@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconButton, Menu, TextInput } from 'react-native-paper';
 
-const API_URL = 'http://192.168.68.77:4000/sessions';
+const API_URL = 'http://192.168.1.240:4000/sessions';
 
 type PostType = {
   _id: string;

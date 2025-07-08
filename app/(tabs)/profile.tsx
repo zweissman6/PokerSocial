@@ -37,7 +37,7 @@ type Session = {
   description?: string;
 };
 
-const API_URL = 'http://192.168.68.77:4000/users';
+const API_URL = 'http://192.168.1.240:4000/users';
 
 const ProfileHeader = ({ user }: { user: any }) => (
   <View style={styles.headerRow}>
