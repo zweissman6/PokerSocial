@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const sessionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -11,7 +12,8 @@ const sessionSchema = new mongoose.Schema({
   endTime: { type: String },
   date: { type: String },
   photo: { type: String },
-  description: { type: String }
+  description: { type: String },
+  rungood: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 });
 
 module.exports = mongoose.model('Session', sessionSchema);
