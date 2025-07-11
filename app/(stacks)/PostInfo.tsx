@@ -3,14 +3,16 @@
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconButton, Menu, TextInput } from 'react-native-paper';
+import { useUser } from '../context/UserContext';
 
 const API_URL = 'http://192.168.1.240:4000/sessions';
 
 type PostType = {
   _id: string;
   userId: {
+    _id: string;
     userName: string;
     avatar: string;
     favoriteCardroom: string;
@@ -29,6 +31,7 @@ type PostType = {
 
 export default function PostInfo() {
   const router = useRouter();
+  const { user } = useUser()
   const { postId } = useLocalSearchParams();
 
   const [post, setPost] = useState<PostType | null>(null);
@@ -36,40 +39,94 @@ export default function PostInfo() {
   const [error, setError] = useState<string | null>(null);
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [rungood, setRungood] = useState(0);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState<any[]>([]);
 
+  //usestates for likes
+  const [rungoodCount, setRungoodCount] = useState(0);
+  const [rungoodUsers, setRungoodUsers] = useState<{ _id: string, userName: string, avatar: string }[]>([]); // Array of user objects
+  const [hasRungood, setHasRungood] = useState(false);
+
+  const [refreshing, setRefreshing] = useState(false);
+
   // TODO: Detect if current user is owner
-  const isOwner = true; // Replace with your logic
+  const isOwner = user && post && user._id === post.userId._id;
 
-    useEffect(() => {
-        if (!postId) return;
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchPostAndRungood();
+    setRefreshing(false);
+  };
 
-        console.log('postId:', postId);
-        console.log('Fetching:', `${API_URL}/${postId}`);
+  const fetchPostAndRungood = async () => {
+    if (!postId || !user || !user._id) return;
+    setLoading(true);
+    setError(null);
 
-        setLoading(true);
-        setError(null);
+    try {
+      const postRes = await axios.get(`${API_URL}/${postId}`);
+      setPost(postRes.data);
+      setComments(postRes.data.comments || []);
 
-        axios.get(`${API_URL}/${postId}`)
-            .then(res => {
-            setPost(res.data);
-            setRungood(res.data.rungood || 0);
-            setComments(res.data.comments || []);
-            })
-            .catch((e) => {
-            setError('Could not load post');
-            console.log('Error fetching post:', e);
-            })
-            .finally(() => setLoading(false));
-    }, [postId]);
+      const rungoodRes = await axios.get(`${API_URL}/${postId}/rungood`);
+      setRungoodCount(rungoodRes.data.count);
+      setRungoodUsers(rungoodRes.data.users);
+      setHasRungood(rungoodRes.data.users.some((u: { _id: string }) => u._id === user._id));
+    } catch (e) {
+      setError('Could not load post');
+      setRungoodCount(0);
+      setRungoodUsers([]);
+      setHasRungood(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
-  function handleRungood() {
-    setRungood(val => val + 1);
-    // TODO: POST rungood to backend
-  }
+
+  useEffect(() => {
+    fetchPostAndRungood();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId, user && user._id]);
+
+  const handleRungood = async () => {
+    if (!user || !user._id) return;
+
+    // Optimistic update:
+    let updatedUsers, nowLiked;
+    if (hasRungood) {
+      // Unlike
+      updatedUsers = rungoodUsers.filter(u => u._id !== user._id);
+      nowLiked = false;
+    } else {
+      // Like (move you to front)
+      updatedUsers = [
+        {
+          _id: user._id,
+          userName: user.userName,
+          avatar: user.avatar,
+        },
+        ...rungoodUsers.filter(u => u._id !== user._id)
+      ];
+      nowLiked = true;
+    }
+
+    setRungoodUsers(updatedUsers);
+    setRungoodCount(updatedUsers.length);
+    setHasRungood(nowLiked);
+
+    // POST in background; no refetch
+    try {
+      await axios.post(`${API_URL}/${postId}/rungood`, { userId: user._id });
+      // No fetch; UI stays instant. 
+      // (You could refetch here if you need to guarantee eventual consistency, but not required for a smooth feel.)
+    } catch (err) {
+      // Optional: show error or roll back update
+      // For now, silent fail is common pattern
+    }
+  };
+    
+
 
   function handleAddComment() {
     if (!comment.trim()) return;
@@ -131,26 +188,39 @@ export default function PostInfo() {
             <Text style={styles.cardroom}>{post.userId.favoriteCardroom}</Text>
           </View>
         </View>
-        {isOwner && (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-vertical"
-                onPress={() => setMenuVisible(true)}
-                style={styles.menuIcon}
-              />
-            }
-            contentStyle={styles.menuContent}
-          >
-            <Menu.Item onPress={handleEdit} title="Edit (coming soon)" />
-            <Menu.Item onPress={handleDelete} title="Delete (coming soon)" />
-          </Menu>
-        )}
+          {isOwner ? (
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  onPress={() => setMenuVisible(true)}
+                  style={styles.menuIcon}
+                />
+              }
+              contentStyle={styles.menuContent}
+            >
+              <Menu.Item onPress={handleEdit} title="Edit (coming soon)" />
+              <Menu.Item onPress={handleDelete} title="Delete (coming soon)" />
+            </Menu>
+          ) : (
+            // If not owner, add a placeholder view to keep spacing consistent
+            <View style={{ width: 40 }} />
+          )}
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 30 }}>
+      <ScrollView 
+        style={styles.scroll}  
+        contentContainerStyle={{ paddingBottom: 30 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ffd700"
+          />
+        }
+      >
         {post.photo && (
           <Image source={{ uri: post.photo }} style={styles.photo} />
         )}
@@ -165,11 +235,41 @@ export default function PostInfo() {
 
         {/* RunGood (Like) Button */}
         <View style={styles.chipRow}>
-          <TouchableOpacity style={styles.rungoodButton} onPress={handleRungood}>
+          <TouchableOpacity
+            style={[
+              styles.rungoodButton,
+              hasRungood && { backgroundColor: '#ffd70022', borderWidth: 1, borderColor: '#ffd700' }
+            ]}
+            onPress={handleRungood}
+          >
             <Text style={styles.chipIcon}>🍀</Text>
-            <Text style={styles.chipCount}>{rungood} RunGood</Text>
+            <Text style={styles.chipCount}>
+              {rungoodCount} RunGood
+            </Text>
           </TouchableOpacity>
+          {rungoodUsers.length > 0 && (
+            <View style={{ marginLeft: 10 }}>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>Given by:</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {rungoodUsers.slice(-5).reverse().map(u => (
+                  <View key={u._id} style={{ alignItems: 'center', marginRight: 8 }}>
+                    <Image
+                      source={{ uri: u.avatar }}
+                      style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: '#ffd700' }}
+                    />
+                    <Text style={{ color: '#ffd700', fontSize: 11 }}>{u.userName}</Text>
+                  </View>
+                ))}
+                {rungoodUsers.length > 5 && (
+                  <Text style={{ color: '#ffd700', fontSize: 13, marginLeft: 3 }}>
+                    +{rungoodUsers.length - 5} more
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </View>
+
 
         {/* Comments Section */}
         <View style={styles.commentsSection}>

@@ -1,6 +1,7 @@
 // routes/sessions.js
 
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Session = require('../models/Session');
 const User = require('../models/User');
@@ -28,6 +29,55 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// POST /sessions/:id/rungood - toggle rungood for a session by current user
+router.post('/:id/rungood', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    // Check if user has already liked
+    const alreadyRungood = session.rungood.some(uid => uid.equals(userId));
+
+    if (alreadyRungood) {
+      // Remove the user's id
+      session.rungood = session.rungood.filter(uid => !uid.equals(userId));
+    }
+
+    // If liking (not just unliking), push to end
+    if (!alreadyRungood) {
+      session.rungood.push(userId);
+    }
+
+    await session.save();
+
+    // This ensures the returned array reflects the new order (most recent at end)
+    await session.populate('rungood', 'userName avatar');
+    res.json({
+      count: session.rungood.length,
+      users: session.rungood,
+      liked: !alreadyRungood,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// GET /sessions/:id/rungood - get all users who gave rungood
+router.get('/:id/rungood', async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id).populate('rungood', 'userName avatar');
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    res.json({ count: session.rungood.length, users: session.rungood });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 
 module.exports = router;
