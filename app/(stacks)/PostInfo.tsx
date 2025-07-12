@@ -89,42 +89,18 @@ export default function PostInfo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, user && user._id]);
 
-  const handleRungood = async () => {
-    if (!user || !user._id) return;
-
-    // Optimistic update:
-    let updatedUsers, nowLiked;
-    if (hasRungood) {
-      // Unlike
-      updatedUsers = rungoodUsers.filter(u => u._id !== user._id);
-      nowLiked = false;
-    } else {
-      // Like (move you to front)
-      updatedUsers = [
-        {
-          _id: user._id,
-          userName: user.userName,
-          avatar: user.avatar,
-        },
-        ...rungoodUsers.filter(u => u._id !== user._id)
-      ];
-      nowLiked = true;
-    }
-
-    setRungoodUsers(updatedUsers);
-    setRungoodCount(updatedUsers.length);
-    setHasRungood(nowLiked);
-
-    // POST in background; no refetch
-    try {
-      await axios.post(`${API_URL}/${postId}/rungood`, { userId: user._id });
-      // No fetch; UI stays instant. 
-      // (You could refetch here if you need to guarantee eventual consistency, but not required for a smooth feel.)
-    } catch (err) {
-      // Optional: show error or roll back update
-      // For now, silent fail is common pattern
-    }
-  };
+const handleRungood = async () => {
+  if (!user || !user._id) return;
+  try {
+    // Await the backend, and update with what it sends!
+    const res = await axios.post(`${API_URL}/${postId}/rungood`, { userId: user._id });
+    setRungoodCount(res.data.count);
+    setRungoodUsers(res.data.users);
+    setHasRungood(res.data.users.some((u: { _id: string }) => u._id === user._id));
+  } catch (err) {
+    Alert.alert("Error", "Could not update RunGood. Please try again.");
+  }
+};
     
 
 
@@ -249,7 +225,7 @@ export default function PostInfo() {
           </TouchableOpacity>
           {rungoodUsers.length > 0 && (
             <View style={{ marginLeft: 10 }}>
-              <Text style={{ color: '#aaa', fontSize: 13 }}>Given by:</Text>
+              <Text style={{ color: '#aaa', fontSize: 13 }}>from:</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {rungoodUsers.slice(-5).reverse().map(u => (
                   <View key={u._id} style={{ alignItems: 'center', marginRight: 8 }}>
