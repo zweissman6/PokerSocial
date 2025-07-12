@@ -39,22 +39,16 @@ router.post('/:id/rungood', async (req, res) => {
     const session = await Session.findById(req.params.id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
-    // Check if user has already liked
     const alreadyRungood = session.rungood.some(uid => uid.equals(userId));
-
     if (alreadyRungood) {
-      // Remove the user's id
+      // UNLIKE: remove user
       session.rungood = session.rungood.filter(uid => !uid.equals(userId));
-    }
-
-    // If liking (not just unliking), push to end
-    if (!alreadyRungood) {
+    } else {
+      // LIKE: push user to end
       session.rungood.push(userId);
     }
-
     await session.save();
 
-    // This ensures the returned array reflects the new order (most recent at end)
     await session.populate('rungood', 'userName avatar');
     res.json({
       count: session.rungood.length,
@@ -65,6 +59,7 @@ router.post('/:id/rungood', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 
 // GET /sessions/:id/rungood - get all users who gave rungood
