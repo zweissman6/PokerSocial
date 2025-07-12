@@ -13,7 +13,15 @@ const sessionSchema = new mongoose.Schema({
   date: { type: String },
   photo: { type: String },
   description: { type: String },
-  rungood: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+  rungood: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  comments: [
+  {
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    text: String,
+    createdAt: Date,
+  }
+]
 });
 
 module.exports = mongoose.model('Session', sessionSchema);
