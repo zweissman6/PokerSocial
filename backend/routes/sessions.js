@@ -73,6 +73,64 @@ router.get('/:id/rungood', async (req, res) => {
   }
 });
 
+// GET all comments for a session
+router.get('/:id/comments', async (req, res) => {
+  const session = await Session.findById(req.params.id)
+    .populate({
+      path: 'comments.user',
+      select: 'userName avatar',
+    });
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  res.json(session.comments || []);
+});
+
+// POST a new comment
+router.post('/:id/comments', async (req, res) => {
+  const { userId, text } = req.body;
+  if (!userId || !text) return res.status(400).json({ error: 'userId and text required' });
+  const session = await Session.findById(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const newComment = {
+    _id: new mongoose.Types.ObjectId(),
+    user: user._id,
+    text,
+    createdAt: new Date(),
+  };
+  session.comments = session.comments || [];
+  session.comments.push(newComment);
+  await session.save();
+
+  // repopulate user
+  await session.populate({
+    path: 'comments.user',
+    select: 'userName avatar'
+  });
+  res.json(session.comments[session.comments.length - 1]);
+});
+
+// DELETE a comment (only by its author)
+router.delete('/:id/comments/:commentId', async (req, res) => {
+  const { userId } = req.query; // passed as ?userId=xxx
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  const session = await Session.findById(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const commentIndex = (session.comments || []).findIndex(
+    c => c._id.toString() === req.params.commentId && c.user.toString() === userId
+  );
+  if (commentIndex === -1) return res.status(403).json({ error: 'Not allowed' });
+
+  session.comments.splice(commentIndex, 1);
+  await session.save();
+  res.json({ success: true });
+});
+
+
 
 
 module.exports = router;
