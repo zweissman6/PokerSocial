@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconButton, Menu, TextInput } from 'react-native-paper';
 import { useUser } from '../context/UserContext';
@@ -42,6 +42,8 @@ export default function PostInfo() {
   const [comments, setComments] = useState<any[]>([]);
   const [comment, setComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<null | { userName: string }>(null);
+  const commentInputRef = useRef<any>(null);
+
 
   const fetchComments = async () => {
     const res = await axios.get(`${API_URL}/${postId}/comments`);
@@ -58,6 +60,16 @@ export default function PostInfo() {
   // TODO: Detect if current user is owner
   const isOwner = user && post && user._id === post.userId._id;
 
+  const fetchUserIdByUsername = async (userName: string): Promise<string | null> => {
+    try {
+      const res = await axios.get(`http://192.168.1.240:4000/users/username/${encodeURIComponent(userName)}`);
+      return res.data?._id || null;
+    } catch {
+      return null;
+    }
+};
+
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchPostAndRungood();
@@ -72,7 +84,9 @@ export default function PostInfo() {
     try {
       const postRes = await axios.get(`${API_URL}/${postId}`);
       setPost(postRes.data);
-      setComments(postRes.data.comments || []);
+
+      // REMOVE this line (don't get comments from the post!):
+      // setComments(postRes.data.comments || []);
 
       const rungoodRes = await axios.get(`${API_URL}/${postId}/rungood`);
       setRungoodCount(rungoodRes.data.count);
@@ -90,6 +104,7 @@ export default function PostInfo() {
 
 
 
+
   useEffect(() => {
     fetchPostAndRungood();
     fetchComments();
@@ -103,9 +118,13 @@ export default function PostInfo() {
       text: comment,
     });
     setComment('');
-    setReplyingTo(null);
+    commentInputRef.current?.clear();
     fetchComments();
   };
+
+
+
+
 
   const handleDeleteComment = async (commentId: string) => {
     if (!user?._id) return;
@@ -264,11 +283,39 @@ const handleRungood = async () => {
               <Image source={{ uri: c.user.avatar }} style={styles.commentAvatar} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.commentUser}>{c.user.userName}</Text>
-                <Text style={styles.commentText}>{c.text}</Text>
+                {/*Redirect for replies*/}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {c.text.startsWith('@') && c.text.indexOf(' ') > 0 ? (
+                    <>
+                      <TouchableOpacity
+                        onPress={async () => {
+                          const username = c.text.slice(1, c.text.indexOf(' '));
+                          const userId = await fetchUserIdByUsername(username);
+                          if (userId) {
+                            router.push({ pathname: '/(stacks)/UserProfile', params: { username } })
+                          } else {
+                            Alert.alert('User not found', `Could not find user: ${username}`);
+                          }
+                        }}>
+                        <Text style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                          {c.text.slice(0, c.text.indexOf(' ') + 1)}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={styles.commentText}>{c.text.slice(c.text.indexOf(' ') + 1)}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.commentText}>{c.text}</Text>
+                  )}
+                </View>
                 <View style={{ flexDirection: 'row', gap: 12, marginBottom: 3 }}>
                   {/* Reply (auto-inserts @username in box) */}
                   <TouchableOpacity
-                    onPress={() => setReplyingTo({ userName: c.user.userName })}
+                    onPress={() => {
+                      setComment(`@${c.user.userName} `);
+                      setReplyingTo(null);
+                      // Focus the input if possible
+                      commentInputRef.current?.focus && commentInputRef.current.focus();
+                    }}
                   >
                     <Text style={{ color: '#ffd700', fontWeight: 'bold' }}>Reply</Text>
                   </TouchableOpacity>
@@ -285,10 +332,13 @@ const handleRungood = async () => {
           {/* Add Comment/Reply Box */}
           <View style={styles.addCommentRow}>
             <TextInput
+              ref={commentInputRef}
               value={comment}
               onChangeText={setComment}
-              placeholder={replyingTo ? `Replying to @${replyingTo.userName}` : "Add a comment..."}
-              style={styles.commentInput}
+              placeholder="Add a comment..."
+              style={[styles.commentInput, { height: 36 }]}
+              multiline
+              scrollEnabled={true}
               placeholderTextColor="#999"
             />
             {replyingTo && (
@@ -353,6 +403,7 @@ const styles = StyleSheet.create({
   replyUser: { color: '#bbb', fontWeight: 'bold', fontSize: 13, marginRight: 6 },
   replyText: { color: '#ddd', fontSize: 13 },
   addCommentRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  commentInput: { flex: 1, backgroundColor: '#232323', color: '#fff', borderRadius: 7, paddingHorizontal: 12, height: 36, fontSize: 14 },
-  sendButton: { marginLeft: 10, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#232323', borderRadius: 6 }
+  commentInput: { flex: 1, backgroundColor: '#232323', color: '#fff', borderRadius: 7, paddingHorizontal: 12, fontSize: 14},
+  sendButton: { marginLeft: 10, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#232323', borderRadius: 6 },
+  mentionText: { color: '#ffd700', fontWeight: 'bold' }
 });
