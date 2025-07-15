@@ -5,7 +5,7 @@ const Session = require('../models/Session');
 
 router.get('/username/:username', async (req, res) => {
   try {
-    // Use case-insensitive search if you want (recommended):\
+    // Use case-insensitive search if you want (recommended):
     const user = await User.findOne({ userName: { $regex: `^${req.params.username}$`, $options: 'i' } }).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
