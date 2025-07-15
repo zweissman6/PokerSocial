@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Refres
 import { IconButton, Menu, TextInput } from 'react-native-paper';
 import { useUser } from '../context/UserContext';
 
-const API_URL = 'http://192.168.1.240:4000/sessions';
+const API_URL = 'http://192.168.1.240:4000';
 
 type PostType = {
   _id: string;
@@ -46,7 +46,7 @@ export default function PostInfo() {
 
 
   const fetchComments = async () => {
-    const res = await axios.get(`${API_URL}/${postId}/comments`);
+    const res = await axios.get(`${API_URL}/sessions/${postId}/comments`);
     setComments(res.data);
   };
 
@@ -62,9 +62,11 @@ export default function PostInfo() {
 
   const fetchUserIdByUsername = async (userName: string): Promise<string | null> => {
     try {
-      const res = await axios.get(`${API_URL}/username/${encodeURIComponent(userName)}`);
+      console.log(`${API_URL}/users/username/${encodeURIComponent(userName)}`);
+      const res = await axios.get(`${API_URL}/users/username/${encodeURIComponent(userName)}`);
       return res.data?._id || null;
-    } catch {
+    } catch (e) {
+      console.log('Failed to fetch user by username', e);
       return null;
     }
 };
@@ -82,13 +84,13 @@ export default function PostInfo() {
     setError(null);
 
     try {
-      const postRes = await axios.get(`${API_URL}/${postId}`);
+      const postRes = await axios.get(`${API_URL}/sessions/${postId}`);
       setPost(postRes.data);
 
       // REMOVE this line (don't get comments from the post!):
       // setComments(postRes.data.comments || []);
 
-      const rungoodRes = await axios.get(`${API_URL}/${postId}/rungood`);
+      const rungoodRes = await axios.get(`${API_URL}/sessions/${postId}/rungood`);
       setRungoodCount(rungoodRes.data.count);
       setRungoodUsers(rungoodRes.data.users);
       setHasRungood(rungoodRes.data.users.some((u: { _id: string }) => u._id === user._id));
@@ -113,7 +115,7 @@ export default function PostInfo() {
 
   const handleAddComment = async () => {
     if (!comment.trim() || !user?._id) return;
-    await axios.post(`${API_URL}/${postId}/comments`, {
+    await axios.post(`${API_URL}/sessions/${postId}/comments`, {
       userId: user._id,
       text: comment,
     });
@@ -128,7 +130,7 @@ export default function PostInfo() {
 
   const handleDeleteComment = async (commentId: string) => {
     if (!user?._id) return;
-    await axios.delete(`${API_URL}/${postId}/comments/${commentId}?userId=${user._id}`);
+    await axios.delete(`${API_URL}/sessions/${postId}/comments/${commentId}?userId=${user._id}`);
     fetchComments();
   };
 
@@ -137,7 +139,7 @@ const handleRungood = async () => {
   if (!user || !user._id) return;
   try {
     // Await the backend, and update with what it sends!
-    const res = await axios.post(`${API_URL}/${postId}/rungood`, { userId: user._id });
+    const res = await axios.post(`${API_URL}/sessions/${postId}/rungood`, { userId: user._id });
     setRungoodCount(res.data.count);
     setRungoodUsers(res.data.users);
     setHasRungood(res.data.users.some((u: { _id: string }) => u._id === user._id));
