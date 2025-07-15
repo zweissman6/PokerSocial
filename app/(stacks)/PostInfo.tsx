@@ -62,7 +62,6 @@ export default function PostInfo() {
 
   const fetchUserIdByUsername = async (userName: string): Promise<string | null> => {
     try {
-      console.log(`${API_URL}/users/username/${encodeURIComponent(userName)}`);
       const res = await axios.get(`${API_URL}/users/username/${encodeURIComponent(userName)}`);
       return res.data?._id || null;
     } catch (e) {
