@@ -480,7 +480,7 @@ const handleRungood = async () => {
           right: 0,
           bottom: 0,
           minHeight: 100,
-          maxHeight: '33%',
+          maxHeight: 360,
         }}
       >
         <Text style={{
