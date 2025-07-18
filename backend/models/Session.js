@@ -20,6 +20,7 @@ const sessionSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     text: String,
     createdAt: Date,
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   }
 ]
 });
