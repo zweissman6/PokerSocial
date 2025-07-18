@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { IconButton, Menu, TextInput } from 'react-native-paper';
+import { IconButton, Menu, Modal, Portal, TextInput } from 'react-native-paper';
 import { useUser } from '../context/UserContext';
 
 const API_URL = 'http://192.168.1.240:4000';
@@ -43,6 +43,10 @@ export default function PostInfo() {
   const [comment, setComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<null | { userName: string }>(null);
   const commentInputRef = useRef<any>(null);
+  // For showing the list of likes in a modal
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [likesModalUsers, setLikesModalUsers] = useState<{ _id: string, userName: string, avatar: string }[]>([]);
+
 
 
   const fetchComments = async () => {
@@ -175,6 +179,7 @@ const handleRungood = async () => {
   }
 
   return (
+    
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -308,25 +313,63 @@ const handleRungood = async () => {
                     <Text style={styles.commentText}>{c.text}</Text>
                   )}
                 </View>
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 3 }}>
-                  {/* Reply (auto-inserts @username in box) */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 3 }}>                 
+                  {/* Reply Button */}
                   <TouchableOpacity
                     onPress={() => {
                       setComment(`@${c.user.userName} `);
                       setReplyingTo(null);
-                      // Focus the input if possible
                       commentInputRef.current?.focus && commentInputRef.current.focus();
                     }}
                   >
                     <Text style={{ color: '#ffd700', fontWeight: 'bold' }}>Reply</Text>
                   </TouchableOpacity>
+                  
                   {/* Delete only for own comments */}
                   {user && user._id === c.user._id && (
                     <TouchableOpacity onPress={() => handleDeleteComment(c._id)}>
                       <Text style={{ color: 'red' }}>Delete</Text>
                     </TouchableOpacity>
                   )}
+                  {/* Like Button for Comments */}
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                    onPress={async () => {
+                      if (!user?._id) return;
+                      const liked = c.likes?.includes(user._id);
+                      try {
+                        if (!liked) {
+                          await axios.post(`${API_URL}/sessions/${postId}/comments/${c._id}/like`, { userId: user._id });
+                        } else {
+                          await axios.post(`${API_URL}/sessions/${postId}/comments/${c._id}/unlike`, { userId: user._id });
+                        }
+                        fetchComments();
+                      } catch (e) {
+                        Alert.alert("Error", "Could not update like.");
+                      }
+                    }}
+                    onLongPress={async () => {
+                      try {
+                        const res = await axios.get(`${API_URL}/sessions/${postId}/comments/${c._id}/likes`);
+                        setLikesModalUsers(res.data);  // Expect array of { _id, userName, avatar }
+                      } catch (e) {
+                        setLikesModalUsers([]); // fallback to empty
+                      }
+                      setShowLikesModal(true);
+                    }}
+                  >
+                    <Text style={{
+                      color: user && c.likes?.includes(user._id) ? "#ffd700" : "#aaa",
+                      fontWeight: "bold",
+                      fontSize: 15,
+                      marginRight: 4
+                    }}>👍</Text>
+                    <Text style={{ color: "#ffd700", fontSize: 13 }}>
+                      {c.likes?.length || 0}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
+
               </View>
             </View>
           ))}
@@ -359,6 +402,43 @@ const handleRungood = async () => {
         </View>
       </ScrollView>
     </View>
+    <Portal>
+      <Modal
+        visible={showLikesModal}
+        onDismiss={() => setShowLikesModal(false)}
+        contentContainerStyle={{
+          backgroundColor: "#232323",
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          padding: 18,
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          minHeight: 100,
+          maxHeight: '33%',
+        }}
+      >
+        <Text style={{
+          color: "#ffd700",
+          fontWeight: "bold",
+          fontSize: 17,
+          marginBottom: 12,
+          textAlign: "center"
+        }}>Liked by</Text>
+        <ScrollView>
+          {likesModalUsers.length === 0 && (
+            <Text style={{ color: "#aaa", textAlign: "center" }}>No likes yet</Text>
+          )}
+          {likesModalUsers.map(u => (
+            <View key={u._id} style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+              <Image source={{ uri: u.avatar }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10, borderWidth: 1, borderColor: "#ffd700" }} />
+              <Text style={{ color: "#ffd700", fontWeight: "bold", fontSize: 15 }}>{u.userName}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </Modal>
+    </Portal>
     </KeyboardAvoidingView>
   );
 }

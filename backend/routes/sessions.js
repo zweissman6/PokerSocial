@@ -130,6 +130,116 @@ router.delete('/:id/comments/:commentId', async (req, res) => {
   res.json({ success: true });
 });
 
+// Like a comment
+router.post('/:id/comments/:commentId/like', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { id, commentId } = req.params;
+
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const comment = session.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    if (!comment.likes) comment.likes = [];
+    if (!comment.likes.includes(userId)) {
+      comment.likes.push(userId);
+      await session.save();
+    } 
+
+    // Optionally, populate likes
+    // await comment.populate('likes', 'userName avatar');
+    res.json({
+      likes: comment.likes,
+      count: comment.likes.length,
+      // users: comment.likes // for now just array of userIds
+    });
+  } catch (err) {
+    console.error('[LIKE] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Unlike a comment
+router.post('/:id/comments/:commentId/unlike', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { id, commentId } = req.params;
+
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const comment = session.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    if (!comment.likes) comment.likes = [];
+    comment.likes = comment.likes.filter(
+      (uid) => uid.toString() !== userId
+    );
+    await session.save();
+
+    // await comment.populate('likes', 'userName avatar');
+    res.json({
+      likes: comment.likes,
+      count: comment.likes.length,
+      // users: comment.likes
+    });
+  } catch (err) {
+    console.error('[UNLIKE] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/comments/:commentId/likes', async (req, res) => {
+  try {
+    const { id: sessionId, commentId } = req.params;
+
+    const session = await Session.findById(sessionId).populate('comments.user');
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const comment = session.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // Use session.populate with the correct path for nested field
+    await session.populate({
+      path: `comments.likes`,
+      select: 'userName avatar'
+    });
+
+    const populatedComment = session.comments.id(commentId);
+
+    const likeUsers = (populatedComment.likes || []).map(u =>
+      typeof u === "object" ? { _id: u._id, userName: u.userName, avatar: u.avatar } : null
+    ).filter(Boolean);
+
+
+    res.json(likeUsers);
+  } catch (err) {
+    console.log('[LIKES ROUTE] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+
+
+
+
 
 
 
