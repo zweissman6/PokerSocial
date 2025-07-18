@@ -72,7 +72,24 @@ export default function PostInfo() {
       console.log('Failed to fetch user by username', e);
       return null;
     }
-};
+  };
+
+  // Go to user profile by username
+  const goToUserProfile = async (userName: string) => {
+    if (!userName) return;
+    try {
+      // You could optimize to skip if userName === user.userName, but this works generally!
+      const userId = await fetchUserIdByUsername(userName);
+      if (userId) {
+        router.push({ pathname: '/(stacks)/UserProfile', params: { username: userName } });
+      } else {
+        Alert.alert('User not found', `Could not find user: ${userName}`);
+      }
+    } catch {
+      Alert.alert('User not found', `Could not find user: ${userName}`);
+    }
+  };
+
 
 
   const onRefresh = async () => {
@@ -214,11 +231,17 @@ const handleRungood = async () => {
           <Text style={styles.backButtonText}>{'‹'}</Text>
         </TouchableOpacity>
         <View style={styles.userRow}>
-          <Image source={{ uri: post.userId.avatar }} style={styles.avatar} />
-          <View>
-            <Text style={styles.username}>{post.userId.userName}</Text>
-            <Text style={styles.cardroom}>{post.userId.favoriteCardroom}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => goToUserProfile(post.userId.userName)}
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+            activeOpacity={0.7}
+          >
+            <Image source={{ uri: post.userId.avatar }} style={styles.avatar} />
+            <View>
+              <Text style={styles.username}>{post.userId.userName}</Text>
+              <Text style={styles.cardroom}>{post.userId.favoriteCardroom}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
           {isOwner ? (
             <Menu
@@ -315,9 +338,21 @@ const handleRungood = async () => {
           <Text style={styles.commentsHeader}>Table Talk</Text>
           {comments.map((c: any) => (
             <View key={c._id} style={styles.commentRow}>
-              <Image source={{ uri: c.user.avatar }} style={styles.commentAvatar} />
+              <TouchableOpacity
+                onPress={() => goToUserProfile(c.user.userName)}
+                activeOpacity={0.7}
+              >
+                <Image source={{ uri: c.user.avatar }} style={styles.commentAvatar} />
+              </TouchableOpacity>
+
               <View style={{ flex: 1 }}>
-                <Text style={styles.commentUser}>{c.user.userName}</Text>
+                <TouchableOpacity
+                  onPress={() => goToUserProfile(c.user.userName)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.commentUser}>{c.user.userName}</Text>
+                </TouchableOpacity>
+
                 {/*Redirect for replies*/}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
                   {c.text.startsWith('@') && c.text.indexOf(' ') > 0 ? (
