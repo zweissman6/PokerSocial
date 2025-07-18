@@ -1,22 +1,11 @@
 import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import {
-  Alert,
-  Button,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Button, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useUser } from '../context/UserContext';
 
-// Use your backend's public URL if testing on device!
-const API_URL = 'http://192.168.1.240:4000/auth'; // Change if using phone (see earlier messages)
+const API_URL = 'http://192.168.1.240:4000/auth';
 
 export default function AuthScreen({ navigation }: any) {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,7 +17,7 @@ export default function AuthScreen({ navigation }: any) {
     favoriteCardroom: '',
     password: '',
   });
-  const { user, setUser } = useUser();
+  const { setUser } = useUser();
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -36,7 +25,6 @@ export default function AuthScreen({ navigation }: any) {
 
   const handleAuth = async () => {
     if (!isLogin) {
-      // Validate required fields
       if (!form.userName.trim()) {
         return Alert.alert('Validation Error', 'Username is required.');
       }
@@ -46,8 +34,6 @@ export default function AuthScreen({ navigation }: any) {
       if (!form.password.trim()) {
         return Alert.alert('Validation Error', 'Password is required.');
       }
-
-      // Disallow spaces in username and password
       if (/\s/.test(form.userName)) {
         return Alert.alert('Validation Error', 'Username cannot contain spaces.');
       }
@@ -74,12 +60,56 @@ export default function AuthScreen({ navigation }: any) {
     }
   };
 
+  const pickAvatar = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission required", "We need access to your camera roll.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      handleChange('avatar', result.assets[0].uri);
+    }
+  };
+
+  const takeAvatarPhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission required", "We need access to your camera.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      handleChange('avatar', result.assets[0].uri);
+    }
+  };
+
+  const chooseAvatar = () => {
+    Alert.alert("Choose Avatar", "Select a photo or take a new one", [
+      { text: "Take Photo", onPress: takeAvatarPhoto },
+      { text: "Choose from Gallery", onPress: pickAvatar },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.inner}>
@@ -112,12 +142,14 @@ export default function AuthScreen({ navigation }: any) {
                 style={styles.input}
               />
 
-              <Text style={styles.label}>Avatar URL</Text>
-              <TextInput
-                value={form.avatar}
-                onChangeText={val => handleChange('avatar', val)}
-                style={styles.input}
-              />
+              <Text style={styles.label}>Avatar</Text>
+              <TouchableOpacity style={styles.avatarPicker} onPress={chooseAvatar}>
+                {form.avatar ? (
+                  <Image source={{ uri: form.avatar }} style={styles.avatarPreview} />
+                ) : (
+                  <Text style={{ color: '#aaa' }}>Tap to select photo</Text>
+                )}
+              </TouchableOpacity>
 
               <Text style={styles.label}>Favorite Cardroom</Text>
               <TextInput
@@ -127,14 +159,12 @@ export default function AuthScreen({ navigation }: any) {
               />
             </>
           ) : (
-            <>
-              <TextInput
-                placeholder="Username"
-                value={form.userName}
-                onChangeText={val => handleChange('userName', val)}
-                style={styles.input}
-              />
-            </>
+            <TextInput
+              placeholder="Username"
+              value={form.userName}
+              onChangeText={val => handleChange('userName', val)}
+              style={styles.input}
+            />
           )}
 
           {!isLogin ? (
@@ -176,18 +206,22 @@ export default function AuthScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#1a1a1a',
-  },
   title: {
     color: '#ffd700',
     fontSize: 26,
     marginBottom: 16,
     alignSelf: 'center',
     fontWeight: 'bold',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#1a1a1a',
+  },
+  inner: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   label: {
     color: '#fff',
@@ -216,14 +250,19 @@ const styles = StyleSheet.create({
     marginTop: 18,
     alignItems: 'center',
   },
-  scrollContainer: {
-    flexGrow: 1,
+  avatarPicker: {
+    backgroundColor: '#232323',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#1a1a1a',
+    marginBottom: 12,
   },
-  inner: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  }
+  avatarPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 1,
+    borderColor: '#ffd700',
+  },
 });
