@@ -127,6 +127,28 @@ export default function PostInfo() {
     fetchComments();
   };
 
+const handleDeletePost = async () => {
+  if (!post?._id || !user?._id) return; // early return if missing
+  Alert.alert(
+    "Delete Post",
+    "Are you sure you want to delete this post? This action cannot be undone.",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive", onPress: async () => {
+          try {
+            await axios.delete(`${API_URL}/sessions/${post._id}?userId=${user._id}`);
+            router.replace('/');
+          } catch (e) {
+            Alert.alert("Error", "Could not delete post. Please try again.");
+          }
+        }
+      }
+    ]
+  );
+};
+
+
 
 
 
@@ -212,7 +234,14 @@ const handleRungood = async () => {
               contentStyle={styles.menuContent}
             >
               <Menu.Item onPress={handleEdit} title="Edit (coming soon)" />
-              <Menu.Item onPress={handleDelete} title="Delete (coming soon)" />
+              <Menu.Item
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleDeletePost();
+                }}
+                title="Delete"
+                titleStyle={{ color: 'red', fontWeight: 'bold' }}
+              />
             </Menu>
           ) : (
             // If not owner, add a placeholder view to keep spacing consistent

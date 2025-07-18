@@ -233,6 +233,25 @@ router.get('/:id/comments/:commentId/likes', async (req, res) => {
   }
 });
 
+// Delete a session (post)
+router.delete('/:id', async (req, res) => {
+  try {
+    // Optional: Check userId matches owner if you want (recommended)
+    const { userId } = req.query;
+    const session = await Session.findById(req.params.id);
+
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (userId && session.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await Session.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 
